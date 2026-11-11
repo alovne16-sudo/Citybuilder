@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>เมืองจำลอง – City Builder</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600&display=swap">
+<style>
+:root{--bg:#a9dcea;--panel:#fbfdfee8;--ink:#17303d;--mute:#58707d;--acc:#1f8a62;--line:#17303d22;--bad:#d23b3b;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d2230;--panel:#13222cee;--ink:#e6f1f6;--mute:#8fa8b5;--acc:#4fc596;--line:#ffffff24;--bad:#ff7a7a}}
+:root[data-theme="dark"]{--bg:#0d2230;--panel:#13222cee;--ink:#e6f1f6;--mute:#8fa8b5;--acc:#4fc596;--line:#ffffff24;--bad:#ff7a7a}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 'Prompt','Sarabun',system-ui,sans-serif;overflow:hidden;user-select:none;-webkit-user-select:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+#top,#bar{position:fixed;left:0;right:0;background:var(--panel);backdrop-filter:blur(8px)}
+#top{top:0;padding:calc(6px + env(safe-area-inset-top,0px)) 10px 6px;border-bottom:1px solid var(--line)}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px}
+.row b{font-weight:600}.row small{color:var(--mute);margin-left:4px}
+.sp{margin-left:auto;display:flex;gap:4px}
+button{font:inherit;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+.sp button{padding:2px 9px}.sp .on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.dem{display:flex;gap:5px}.dm{text-align:center;font-size:11px;color:var(--mute);line-height:1}
+.bar{position:relative;width:12px;height:26px;background:var(--line);border-radius:3px;margin-bottom:2px}
+.bar::after{content:"";position:absolute;left:0;right:0;top:50%;border-top:1px solid var(--mute)}
+.bar i{position:absolute;left:0;right:0}
+#hint{margin-top:4px;font-size:13px;color:var(--mute)}#hint.warn{color:var(--bad);font-weight:600}
+#bar{bottom:0;display:flex;gap:6px;overflow-x:auto;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+.tool{flex:0 0 auto;min-width:70px;padding:5px 8px;text-align:center;line-height:1.25}
+.tool span{display:block;font-size:20px}.tool small{display:block;color:var(--mute);font-size:11px}
+.tool.on{border-color:var(--acc);box-shadow:inset 0 0 0 2px var(--acc)}
+#bar{flex-direction:column;gap:6px;overflow:hidden}#tabs,#tl{display:flex;gap:6px;overflow-x:auto;min-width:0}
+#tabs button{padding:3px 10px;white-space:nowrap}#tabs .on{background:var(--acc);color:#fff;border-color:var(--acc)}.sep{flex:0 0 1px;background:var(--line);margin:2px}
+#set,#mk{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0006;padding:16px;z-index:5}
+#set[hidden],#mk[hidden]{display:none}
+#set .card,#mk .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;width:min(420px,100%);max-height:90%;overflow:auto;backdrop-filter:blur(10px)}
+#set h2,#mk h2{margin:0 0 10px;font-size:16px}
+#hf{margin-top:6px;font-size:12px;color:var(--mute);display:flex;flex-wrap:wrap;gap:2px 12px}#hf[hidden]{display:none}#hf b{color:var(--ink)}
+.mr{display:block;margin-bottom:12px}.mr b{float:right}.mr input{width:100%;accent-color:var(--acc)}#mkd{font-size:13px;line-height:1.7;color:var(--mute)}#mkd b{color:var(--ink)}
+#sgrid{display:grid;gap:8px}
+#sgrid label{display:flex;justify-content:space-between;align-items:center;gap:10px}
+#sgrid input{width:90px;font:inherit;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:6px;padding:3px 6px;text-align:right;user-select:text;-webkit-user-select:text}
+.acts{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}.acts button{padding:5px 12px}.acts .go{background:var(--acc);border-color:var(--acc);color:#fff}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="top">
+ <div class="row">
+  <span>💰 <b id="money"></b><small id="net"></small></span>
+  <span>👥 <b id="pop"></b><small id="rank"></small></span>
+  <span id="hs" style="cursor:pointer" title="ดูรายละเอียดความพอใจ">😊 <b id="hap"></b> <small>▾</small></span><span>🎓 <b id="edu"></b></span><span>🛒 <b id="sold"></b><small>/เดือน</small></span>
+  <span>📅 <b id="date"></b></span>
+  <div class="dem" title="ความต้องการ: บ้าน / การค้า / โรงงาน">
+   <div class="dm"><div class="bar"><i id="dr" style="background:#3fae6a"></i></div>บ้าน</div>
+   <div class="dm"><div class="bar"><i id="dc" style="background:#4a8fd4"></i></div>ค้า</div>
+   <div class="dm"><div class="bar"><i id="di" style="background:#d9a928"></i></div>โรงงาน</div>
+  </div>
+  <div class="sp">
+   <button id="b0" title="หยุด">⏸</button><button id="b1" class="on" title="ปกติ">▶</button><button id="b3" title="เร็ว">⏩</button>
+   <button id="zi" title="ซูมเข้า">＋</button><button id="zo" title="ซูมออก">－</button><button id="mp" title="การตลาดและขายสินค้า">📣</button><button id="st" title="ตั้งราคาและภาษี">⚙️</button><button id="rs" title="เริ่มเมืองใหม่">🗑</button>
+  </div>
+ </div>
+ <div id="hint"></div><div id="hf" hidden></div>
+</div>
+<div id="set" hidden><div class="card"><h2>ตั้งราคาและภาษี</h2><div id="sgrid"></div><div class="acts"><button id="sd">คืนค่าเริ่มต้น</button><button id="sx" class="go">บันทึกและปิด</button></div></div></div>
+<div id="mk" hidden><div class="card"><h2>📣 การตลาดและขายสินค้า</h2>
+<label class="mr">ราคาขายต่อชิ้น <b id="pv"></b><input type="range" id="pr" min="3" max="30" step="1"></label>
+<label class="mr">งบโฆษณาต่อเดือน <b id="bv"></b><input type="range" id="bg" min="0" max="600" step="50"></label>
+<div id="mkd"></div><div class="acts"><button id="mx" class="go">ปิด</button></div></div></div>
+<div id="bar"><div id="tabs"></div><div id="tl"></div></div>
+<script>
+const N=24,HW=32,HH=16,OX=N*HW,OY=66,PR=9,KEY='citybuilder-th-v1';
+const $=id=>document.getElementById(id),cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+const cv=$('c'),ctx=cv.getContext('2d');
+const TOOLS=[
+ {id:'pan',i:'✋',n:'เลื่อนแผนที่',c:0},
+ {id:'road',t:1,i:'🛣️',n:'ถนน',c:10,drag:1},
+ {id:'r',t:2,i:'🏠',n:'ที่อยู่อาศัย',c:30,drag:1},
+ {id:'c',t:3,i:'🏪',n:'พาณิชย์',c:40,drag:1},
+ {id:'i',t:4,i:'🏭',n:'อุตสาหกรรม',c:40,drag:1},
+ {id:'pw',t:5,i:'⚡',n:'โรงไฟฟ้า',c:1500},
+ {id:'pk',t:6,i:'🌳',n:'สวนสาธารณะ',c:150,drag:1},
+ {id:'po',t:8,i:'👮',n:'สถานีตำรวจ',c:800},
+ {id:'fd',t:9,i:'🚒',n:'ดับเพลิง',c:800},
+ {id:'sc',t:10,i:'🏫',n:'โรงเรียน',c:600},
+ {id:'mt',t:11,i:'🛒',n:'ซูเปอร์มาร์เก็ต',c:1200},
+ {id:'wt',t:7,i:'💧',n:'สร้างน้ำ',c:50,drag:1},
+ {id:'fl',t:0,i:'🏝️',n:'ถมน้ำเป็นดิน',c:100,drag:1},
+ {id:'bd',i:'🚜',n:'รื้อถอน',c:5,drag:1}
+];
+const PP=[0,6,16,32],CJ=[0,4,10,20],IJ=[0,6,14,26];
+const MON=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+let t=new Uint8Array(N*N),l=new Uint8Array(N*N),dc=new Uint8Array(N*N),pw=new Uint8Array(N*N),rd=new Uint8Array(N*N),cp=new Uint8Array(N*N),cf=new Uint8Array(N*N),ce=new Uint8Array(N*N),cm=new Uint8Array(N*N),fr=new Uint8Array(N*N),rb=new Uint8Array(N*N);
+let F=[0,0,0,0,0,0,0],jb=0,cr=0,edu=0;const RAD={pw:9,po:8,fd:8,sc:9,mt:8};
+$('hs').onclick=()=>{$('hf').hidden=!$('hf').hidden;ui()};
+let money=20000,month=0,net=0,hap=70,day=0,cur=5,spd=1,S={},D={r:0,c:0,i:0};
+
+function newGame(){t.fill(0);l.fill(0);money=20000;month=0;net=0;hap=70;day=0;cars=[];fr.fill(0);rb.fill(0);cr=0;edu=0;PRICE=10;BUDGET=0;BR=0;
+ let rx=(4+Math.random()*(N-9))|0;
+ for(let y=0;y<N;y++){rx=cl(rx+[-1,0,0,1][Math.random()*4|0],3,N-5);t[y*N+rx]=7;t[y*N+rx+1]=7}
+ for(let i=0;i<N*N;i++)dc[i]=t[i]==0&&Math.random()<.11?1:0;compute();}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({t:[...t],l:[...l],d:[...dc],m:money,mo:month,n:net,p:PRICE,b:BUDGET,br:BR}))}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.t&&s.t.length==N*N){t.set(s.t);l.set(s.l);dc.set(s.d);money=s.m;month=s.mo;net=s.n||0;PRICE=s.p||10;BUDGET=s.b||0;BR=s.br||0;return true}}catch(e){}return false}
+
+function cover(x,y,a,r){for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){const X=x+dx,Y=y+dy;if(X>=0&&Y>=0&&X<N&&Y<N&&dx*dx+dy*dy<=r*r)a[Y*N+X]=1}}
+function compute(){
+ pw.fill(0);rd.fill(0);cp.fill(0);cf.fill(0);ce.fill(0);S={pop:0,jc:0,ji:0,r:0,c:0,i:0,plants:0,roads:0,parks:0,pol:0,fire:0,sch:0,mart:0};
+ for(let y=0;y<N;y++)for(let x=0;x<N;x++){const i=y*N+x,k=t[i];
+  if(k==5){S.plants++;cover(x,y,pw,PR)}else if(k==8){S.pol++;cover(x,y,cp,8)}else if(k==9){S.fire++;cover(x,y,cf,8)}else if(k==10){S.sch++;cover(x,y,ce,9)}else if(k==11)S.mart++;
+  else if(k==1)S.roads++;else if(k==6)S.parks++;
+  else if(k==2){S.r++;S.pop+=PP[l[i]]}else if(k==3){S.c++;S.jc+=CJ[l[i]]}else if(k==4){S.i++;S.ji+=IJ[l[i]]}}
+ for(let y=0;y<N;y++)for(let x=0;x<N;x++)for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const X=x+dx,Y=y+dy;if(X>=0&&Y>=0&&X<N&&Y<N&&t[Y*N+X]==1)rd[y*N+x]=1}
+}
+function happiness(){
+ let w=0,ew=0;F=[0,0,0,0,0,0,0];cm.fill(0);for(let i=0;i<N*N;i++)if(t[i]==11&&pw[i]&&rd[i])cover(i%N,(i/N)|0,cm,8);
+ for(let y=0;y<N;y++)for(let x=0;x<N;x++){const i=y*N+x;if(t[i]!=2||!l[i])continue;
+  let pk=0,ind=0;
+  for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=N||Y>=N)continue;const j=Y*N+X;if(t[j]==6||t[j]==7)pk++;else if(t[j]==4&&l[j])ind++}
+  const L=l[i];[Math.min(pk,2)*7,-Math.min(ind,3)*7,pw[i]?0:-25,cp[i]?8:-8,cf[i]?5:-5,ce[i]?8:0,cm[i]?5:0].forEach((v,a)=>F[a]+=v*L);w+=L;if(ce[i])ew+=L}
+ if(!w){jb=0;edu=0;return 70}
+ F=F.map(v=>v/w);edu=ew/w;jb=S.jc+S.ji>=S.pop*.5?6:-10;return Math.round(cl(55+F.reduce((a,b)=>a+b,0)+jb-Math.min(cr,25),0,100));
+}
+const dev=j=>(t[j]>=2&&t[j]<=4&&l[j]>0)||t[j]==5||t[j]>=8;
+function burn(i){if(t[i]>=2&&t[i]<=4)l[i]=0;else t[i]=0;cr+=8;msg('🔥 อาคารถูกไฟไหม้ทำลาย!')}
+function events(){
+ cr=Math.max(0,cr-.5);let ch=0;
+ for(let i=0;i<N*N;i++){if(rb[i])rb[i]--;if(!fr[i])continue;
+  if(cf[i]&&Math.random()<.5){fr[i]=0;msg('🚒 ดับเพลิงสำเร็จ');continue}
+  if(--fr[i]==0){burn(i);ch=1;continue}
+  if(!cf[i]&&Math.random()<.12){const x=i%N,y=(i/N)|0,d=DIR[(Math.random()*4)|0],X=x+d[0],Y=y+d[1];if(X>=0&&Y>=0&&X<N&&Y<N&&dev(Y*N+X)&&!fr[Y*N+X])fr[Y*N+X]=6}}
+ if(S.pop>=30&&Math.random()<.025*(1+S.i*.05))for(let n=0;n<12;n++){const i=(Math.random()*N*N)|0;if(dev(i)&&!fr[i]){
+  if(cf[i]&&Math.random()<.4)msg('🚒 ป้องกันเพลิงไหม้ได้ทัน');else{fr[i]=6;msg('🔥 ไฟไหม้! สถานีดับเพลิงใกล้ ๆ ช่วยระงับเหตุได้')}break}}
+ if(S.pop>=40&&Math.random()<.03)for(let n=0;n<12;n++){const i=(Math.random()*N*N)|0;if((t[i]==2||t[i]==3)&&l[i]>0){
+  if(cp[i]&&Math.random()<.7)msg('👮 ตำรวจจับโจรได้ทัน');else{const m=Math.min(Math.max(money,0),60+l[i]*80*(t[i]==3?2:1));money-=m;cr+=6;rb[i]=4;msg('🦹 โจรปล้น! เสียเงิน $'+m)}break}}
+ if(ch)compute();
+}
+function mkt(){
+ let mo=0;for(let i=0;i<N*N;i++)if(t[i]==11&&pw[i]&&rd[i])mo++;
+ const prod=Math.round(S.ji*2.5),cap=Math.round(S.jc*3+mo*40),pf=cl(2-PRICE/10,.1,1.5),dem=Math.round(S.pop*.8*(1+BR*.8+Math.min(.4,mo*.08))*pf*(.5+hap/200)),
+  sold=Math.min(dem,prod,cap),exp=Math.min(Math.max(0,prod-sold),S.roads*2);
+ return{mo,prod,cap,dem,sold,exp,rev:Math.round(sold*PRICE*.35+exp*4)}}
+function tick(){
+ compute();hap=happiness();
+ const jobs=S.jc+S.ji;
+ D.r=cl((jobs+10-S.pop)/(S.pop+20),-1,1);if(hap<40)D.r=Math.min(D.r,-.3);
+ D.c=cl((S.pop*.5+2-S.jc)/(S.jc+10)+edu*.15,-1,1);
+ D.i=cl((S.pop*.6+3-S.ji)/(S.ji+10),-1,1);
+ for(let i=0;i<N*N;i++){const k=t[i];if(k<2||k>4)continue;
+  const d=k==2?D.r:k==3?D.c:D.i;
+  if(!(pw[i]&&rd[i])){if(l[i]&&Math.random()<.05)l[i]--;continue}
+  if(d>.05&&l[i]<3&&(l[i]<2||k==4||ce[i])&&Math.random()<.14*d)l[i]++;
+  else if(d<-.25&&l[i]&&Math.random()<.06)l[i]--}
+ compute();
+ events();if(++day%8==0){LM=mkt();net=Math.round(S.pop*TAX*(1+.5*edu)+S.jc*3+S.ji*3+LM.rev)-(S.roads+S.plants*60+S.parks*5+(S.pol+S.fire)*40+S.sch*30+S.mart*50+BUDGET);BR=cl(BR*.92+BUDGET/4000,0,1);money+=net;month++;save();if(money<0)msg('งบประมาณติดลบ! ลดรายจ่ายหรือขยายเมืองเพิ่มรายได้')}
+ ui();
+}
+function place(x,y){
+ const T=TOOLS[cur],i=y*N+x;if(T.id=='pan')return;if(T.id=='fl'&&t[i]!=7)return;if(t[i]==7&&T.id!='fl'&&T.id!='wt')return msg('แม่น้ำ: สร้างหรือรื้อไม่ได้');
+ if(T.id=='bd'){if(!t[i])return;if(money<T.c)return msg('เงินไม่พอ');money-=T.c;t[i]=0}
+ else{if(t[i]==T.t)return;if(money<T.c)return msg('เงินไม่พอ สำหรับ'+T.n);money-=T.c;t[i]=T.t}
+ l[i]=0;dc[i]=0;fr[i]=0;compute();ui();
+}
+
+let mt;
+function msg(s){const h=$('hint');h.textContent=s;h.className='warn';clearTimeout(mt);mt=setTimeout(()=>{h.className='';ui()},2400)}
+function hint(){
+ if(!S.plants)return'เริ่มเลย: วางโรงไฟฟ้า ⚡ ก่อน (วงไฟฟ้าครอบคลุมประมาณ 9 ช่อง)';
+ if(!S.roads)return'ปูถนน 🛣️ ใกล้โรงไฟฟ้า โซนจะเติบโตได้เมื่ออยู่ติดถนนและมีไฟฟ้า';
+ if(!S.r)return'ลากโซนที่อยู่อาศัย 🏠 ข้างถนน';
+ if(!S.c&&!S.i)return'เพิ่มโซนพาณิชย์ 🏪 และอุตสาหกรรม 🏭 เพื่อสร้างงาน';
+ if(S.pop>=40&&!S.pol)return'เริ่มมีโจรแล้ว: สร้างสถานีตำรวจ 👮 ครอบคลุมย่านที่อยู่อาศัย';if(S.pop>=40&&!S.fire)return'ป้องกันไฟไหม้: สร้างสถานีดับเพลิง 🚒 ใกล้โซนบ้านและโรงงาน';if(S.pop>=100&&!S.sch)return'สร้างโรงเรียน 🏫 เพื่อปลดล็อกตึกสูงและเพิ่มรายได้ภาษี';if(S.pop>=100&&S.jc&&S.ji&&!BUDGET&&!BR)return'ลองเปิดแผงการตลาด 📣 เพื่อตั้งราคาขายและงบโฆษณา';if(hap<50)return'ประชาชนไม่พอใจ: สร้างสวน 🌳 ใกล้บ้าน แยกโรงงานให้ห่าง และอย่าลืมไฟฟ้า';
+ if(money<500)return'เงินใกล้หมด: รอรายได้ประจำเดือน หรือรื้อสิ่งที่ไม่ใช้';
+ return'เมืองกำลังเติบโต ขยายโซนตามแถบความต้องการด้านบนได้เลย';
+}
+function ui(){
+ const m=$('money');m.textContent='$'+money.toLocaleString('en-US');m.style.color=money<0?'var(--bad)':'';
+ $('net').textContent=month?(net>=0?'+':'')+net+'/เดือน':'';
+ $('pop').textContent=S.pop.toLocaleString('en-US');
+ $('rank').textContent=S.pop<100?'หมู่บ้าน':S.pop<800?'เมืองเล็ก':S.pop<2500?'เมือง':'มหานคร';
+ $('hap').textContent=hap+'%';$('edu').textContent=Math.round(edu*100)+'%';$('sold').textContent=mkt().sold;
+ const hf=$('hf');if(!hf.hidden){const LB=['🌳 สวน/น้ำ','🏭 มลพิษ','⚡ ไฟฟ้า','👮 ตำรวจ','🚒 ดับเพลิง','🎓 การศึกษา','🛒 ซูเปอร์ฯ'],f=v=>(v>0?'+':'')+Math.round(v);hf.innerHTML=LB.map((n,a)=>`<span>${n} <b>${f(F[a])}</b></span>`).join('')+`<span>💼 งาน <b>${f(jb)}</b></span><span>🚨 เหตุร้าย <b>${f(-Math.min(cr,25))}</b></span>`}
+ $('date').textContent=MON[month%12]+' '+(2569+Math.floor(month/12));
+ for(const k of['r','c','i']){const e=$('d'+k),v=D[k],h=Math.abs(v)*50;e.style.height=h+'%';e.style.top=v>0?(50-h)+'%':'50%'}
+ if($('hint').className!='warn')$('hint').textContent=hint();
+}
+
+const bar=$('bar');
+let TAX=4;const DEF=TOOLS.map(T=>T.c),PK='citybuilder-th-prices';
+function savePrices(){try{localStorage.setItem(PK,JSON.stringify({c:Object.fromEntries(TOOLS.map(T=>[T.id,T.c])),tax:TAX}))}catch(e){}}
+function loadPrices(){try{const s=JSON.parse(localStorage.getItem(PK));if(s&&s.c&&!Array.isArray(s.c)){TOOLS.forEach((T,n)=>{if(n&&s.c[T.id]!=null)T.c=cl(+s.c[T.id]||0,0,99999)});TAX=cl(+s.tax||0,0,50)}}catch(e){}}
+const CATS=[{i:'🏘️',n:'ผังเมือง'},{i:'🏗️',n:'บริการเมือง'},{i:'🛡️',n:'ความปลอดภัย'},{i:'🛒',n:'การค้า'},{i:'🌍',n:'ภูมิประเทศ'}],GRP={road:0,r:0,c:0,i:0,pw:1,pk:1,sc:1,po:2,fd:2,mt:3,wt:4,fl:4};let cat=1;
+function renderBar(){
+ const tl=$('tl'),tb=$('tabs');tl.innerHTML='';tb.innerHTML='';
+ CATS.forEach((C,g)=>{const x=document.createElement('button');x.textContent=C.i+' '+C.n;x.className=g==cat?'on':'';x.onclick=()=>{cat=g;renderBar()};tb.appendChild(x)});
+ const add=n=>{const T=TOOLS[n],b=document.createElement('button');b.className='tool'+(n==cur?' on':'');b.dataset.n=n;b.innerHTML=`<span>${T.i}</span>${T.n}<small>${T.c?'$'+T.c:'ฟรี'}</small>`;b.onclick=()=>pick(n);tl.appendChild(b)};
+ TOOLS.forEach((T,n)=>{if(GRP[T.id]===undefined)add(n)});
+ const sp=document.createElement('i');sp.className='sep';tl.appendChild(sp);
+ TOOLS.forEach((T,n)=>{if(GRP[T.id]===cat)add(n)});
+ if(cat==3){const m=document.createElement('button');m.className='tool';m.innerHTML='<span>📣</span>แผงการตลาด<small>ราคา/โฆษณา</small>';m.onclick=()=>$('mp').click();tl.appendChild(m)}
+}
+const stp=$('set'),sg=$('sgrid');
+function openSet(){sg.innerHTML='';TOOLS.forEach((T,n)=>{if(n)sg.insertAdjacentHTML('beforeend',`<label>${T.i} ${T.n}<input type="number" min="0" max="99999" step="5" data-n="${n}" value="${T.c}"></label>`)});
+ sg.insertAdjacentHTML('beforeend',`<label>💵 ภาษีต่อประชากร/เดือน<input type="number" min="0" max="50" id="tax" value="${TAX}"></label>`);stp.hidden=false}
+function applySet(){sg.querySelectorAll('input[data-n]').forEach(e=>{TOOLS[+e.dataset.n].c=cl(+e.value||0,0,99999)});TAX=cl(+$('tax').value||0,0,50);savePrices();renderBar();ui()}
+sg.onchange=applySet;$('st').onclick=openSet;
+$('sx').onclick=()=>{applySet();stp.hidden=true};
+$('sd').onclick=()=>{TOOLS.forEach((T,n)=>T.c=DEF[n]);TAX=4;savePrices();renderBar();openSet()};
+let PRICE=10,BUDGET=0,BR=0,LM={};const mkp=$('mk');
+function mkUi(){$('pv').textContent='$'+PRICE;$('bv').textContent='$'+BUDGET;const M=mkt(),lim=M.sold>=M.dem?'ลูกค้าไม่พอ → โฆษณาหรือลดราคา':M.sold>=M.prod?'สินค้าไม่พอ → เพิ่มโรงงาน 🏭':'ร้านค้าไม่พอ → เพิ่มโซนพาณิชย์ 🏪';
+ $('mkd').innerHTML=`<div>🏭 ผลิตได้ <b>${M.prod}</b> · 🏪 รองรับ <b>${M.cap}</b> · 👥 ความต้องการ <b>${M.dem}</b> ชิ้น/เดือน</div><div>🛒 ขายได้ <b>${M.sold}</b> · 🚚 ส่งออก <b>${M.exp}</b> (จำนวนถนนจำกัด)</div><div>💰 รายได้การค้า ≈ <b>$${M.rev}</b>/เดือน · ค่าโฆษณา <b>-$${BUDGET}</b></div><div>🛒 ซูเปอร์มาร์เก็ตที่เปิดอยู่ <b>${M.mo}</b> แห่ง</div><div>📣 การรับรู้แบรนด์ <b>${Math.round(BR*100)}%</b></div><div>สถานะ: <b>${lim}</b></div>`}
+$('pr').oninput=e=>{PRICE=+e.target.value;mkUi();save()};
+$('bg').oninput=e=>{BUDGET=+e.target.value;mkUi();save()};
+$('mp').onclick=()=>{$('pr').value=PRICE;$('bg').value=BUDGET;mkUi();mkp.hidden=false};
+$('mx').onclick=()=>{mkp.hidden=true;ui()};
+loadPrices();renderBar();
+function pick(n){cur=n;const g=GRP[TOOLS[n].id];if(g!==undefined&&g!=cat){cat=g;renderBar()}document.querySelectorAll('#tl .tool').forEach(b=>b.classList.toggle('on',+b.dataset.n==n));cv.style.cursor=TOOLS[n].id=='pan'?'grab':'crosshair'}
+function setSpd(s){spd=s;for(const k of[0,1,3])$('b'+k).classList.toggle('on',k==s)}
+$('b0').onclick=()=>setSpd(0);$('b1').onclick=()=>setSpd(1);$('b3').onclick=()=>setSpd(3);
+let rt;$('rs').onclick=e=>{const b=e.currentTarget;if(b.dataset.s){newGame();save();ui();b.textContent='🗑';delete b.dataset.s;clearTimeout(rt)}else{b.dataset.s=1;b.textContent='แน่ใจ?';rt=setTimeout(()=>{b.textContent='🗑';delete b.dataset.s},3000)}};
+addEventListener('keydown',e=>{if(e.target.tagName=='INPUT')return;const n=+e.key;if(n>=1&&n<=TOOLS.length)pick(n-1);if(e.key==' '){e.preventDefault();setSpd(spd?0:1)}});
+
+/* view + input */
+let V={s:1,x:0,y:0},dpr=1,hv=null,painting=false,panning=false,lp=null;
+function fit(){
+ dpr=devicePixelRatio||1;cv.width=innerWidth*dpr;cv.height=innerHeight*dpr;
+ const th=$('top').offsetHeight,bh=bar.offsetHeight,W=N*HW*2,H=OY+N*HH*2+16,h=innerHeight-th-bh;
+ V.s=Math.min(innerWidth/W,h/H)*.98;V.x=(innerWidth-W*V.s)/2;V.y=th+(h-H*V.s)/2;
+}
+function zoom(f,cx,cy){const s=cl(V.s*f,.12,2.5);V.x=cx-(cx-V.x)*s/V.s;V.y=cy-(cy-V.y)*s/V.s;V.s=s}
+$('zi').onclick=()=>zoom(1.25,innerWidth/2,innerHeight/2);$('zo').onclick=()=>zoom(.8,innerWidth/2,innerHeight/2);
+function tileAt(px,py){const u=((px-V.x)/V.s-OX)/HW,v=((py-V.y)/V.s-OY)/HH,x=Math.floor((u+v)/2),y=Math.floor((v-u)/2);return x>=0&&y>=0&&x<N&&y<N?{x,y}:null}
+cv.addEventListener('pointerdown',e=>{cv.setPointerCapture(e.pointerId);lp={x:e.clientX,y:e.clientY};
+ if(e.button!=0||TOOLS[cur].id=='pan'){panning=true;return}
+ painting=true;const h=tileAt(e.clientX,e.clientY);hv=h;if(h)place(h.x,h.y)});
+cv.addEventListener('pointermove',e=>{
+ if(panning){V.x+=e.clientX-lp.x;V.y+=e.clientY-lp.y;lp={x:e.clientX,y:e.clientY};return}
+ hv=tileAt(e.clientX,e.clientY);if(painting&&hv&&TOOLS[cur].drag)place(hv.x,hv.y)});
+cv.addEventListener('pointerup',()=>{painting=panning=false});
+cv.addEventListener('pointerleave',e=>{if(e.pointerType=='mouse')hv=null});
+cv.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY<0?1.12:1/1.12,e.clientX,e.clientY)},{passive:false});
+cv.addEventListener('contextmenu',e=>e.preventDefault());
+addEventListener('resize',fit);
+
+/* drawing */
+function dia(cx,cy,a,b){ctx.beginPath();ctx.moveTo(cx,cy-b);ctx.lineTo(cx+a,cy);ctx.lineTo(cx,cy+b);ctx.lineTo(cx-a,cy);ctx.closePath()}
+function box(cx,cy,f,h,c){
+ const a=HW*f,b=HH*f;
+ ctx.fillStyle=c[2];ctx.beginPath();ctx.moveTo(cx+a,cy);ctx.lineTo(cx,cy+b);ctx.lineTo(cx,cy+b-h);ctx.lineTo(cx+a,cy-h);ctx.fill();
+ ctx.fillStyle=c[1];ctx.beginPath();ctx.moveTo(cx-a,cy);ctx.lineTo(cx,cy+b);ctx.lineTo(cx,cy+b-h);ctx.lineTo(cx-a,cy-h);ctx.fill();
+ ctx.fillStyle=c[0];ctx.beginPath();ctx.moveTo(cx,cy-b-h);ctx.lineTo(cx+a,cy-h);ctx.lineTo(cx,cy+b-h);ctx.lineTo(cx-a,cy-h);ctx.fill();
+}
+function wins(cx,cy,f,h){
+ const a=HW*f,b=HH*f;ctx.fillStyle='rgba(255,255,255,.5)';
+ for(let k=0;k<2;k++){ctx.save();k?ctx.transform(1,-.5,0,1,cx,cy+b):ctx.transform(1,.5,0,1,cx-a,cy);
+  for(let yy=8;yy<h-3;yy+=9)for(let xx=5;xx<a-4;xx+=8)ctx.fillRect(xx,-yy-3,4,5);ctx.restore()}
+}
+function tree(x,y){ctx.fillStyle='#6b4a2b';ctx.fillRect(x-1.5,y-6,3,6);ctx.fillStyle='#37984a';ctx.beginPath();ctx.arc(x,y-12,7,0,7);ctx.fill();ctx.fillStyle='#4fb862';ctx.beginPath();ctx.arc(x-2,y-14,4,0,7);ctx.fill()}
+function smoke(x,y,now,s){for(let k=0;k<2;k++){const p=(now/1700+k*.5+s*.13)%1;ctx.fillStyle=`rgba(225,225,230,${.75*(1-p)})`;ctx.beginPath();ctx.arc(x+p*7,y-p*22,3+p*4,0,7);ctx.fill()}}
+const PAL={r:['#8fd6a0','#5fb27a','#489663'],c:['#93c8f0','#5f9cd2','#4983b9'],i:['#ebd27e','#c9ab4f','#ab8d3d'],g:['#d4d9de','#aeb6be','#8f98a1']};
+const ZT={2:'rgba(63,174,106,.5)',3:'rgba(74,143,212,.5)',4:'rgba(217,169,40,.55)'};
+const NB=[[1,0,16,8],[-1,0,-16,-8],[0,1,-16,8],[0,-1,16,-8]];
+
+function tile(x,y,now){
+ const i=y*N+x,k=t[i],cx=OX+(x-y)*HW,cy=OY+(x+y)*HH+HH;
+ if(x==N-1){ctx.fillStyle='#7c5535';ctx.beginPath();ctx.moveTo(cx+HW,cy);ctx.lineTo(cx,cy+HH);ctx.lineTo(cx,cy+HH+12);ctx.lineTo(cx+HW,cy+12);ctx.fill()}
+ if(y==N-1){ctx.fillStyle='#98693f';ctx.beginPath();ctx.moveTo(cx-HW,cy);ctx.lineTo(cx,cy+HH);ctx.lineTo(cx,cy+HH+12);ctx.lineTo(cx-HW,cy+12);ctx.fill()}
+ dia(cx,cy,HW,HH);ctx.fillStyle=k==1?'#5a626d':k==6?'#a0e07f':k==7?((x+y)&1?'#4ea9d9':'#58b3e2'):((x+y)&1?'#8fd170':'#86c968');ctx.fill();
+ ctx.strokeStyle='rgba(0,0,0,.07)';ctx.stroke();
+ if(k==0){if(dc[i])tree(cx,cy+2)}
+ else if(k==1){ctx.strokeStyle='#ece6b4';ctx.lineWidth=1.5;ctx.setLineDash([4,4]);
+  for(const[dx,dy,ox,oy]of NB){const X=x+dx,Y=y+dy;if(X>=0&&Y>=0&&X<N&&Y<N&&t[Y*N+X]==1){ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+ox,cy+oy);ctx.stroke()}}
+  ctx.setLineDash([]);ctx.lineWidth=1;if(cb[i])for(const[a,b,c]of cb[i])box(a,b,.15,4,CP[c])}
+ else if(k==7){const p=Math.sin(now/700+x+y)*7;ctx.strokeStyle='rgba(255,255,255,.45)';ctx.beginPath();ctx.moveTo(cx-9+p,cy);ctx.lineTo(cx+1+p,cy);ctx.stroke()}
+ else if(k==6){tree(cx+12,cy-3);tree(cx-14,cy);tree(cx+2,cy+8)}
+ else if(k==11){box(cx,cy,.9,14,['#f4f7f2','#cfe3cf','#a9c9aa']);wins(cx,cy,.9,14);box(cx,cy-14,.94,4,['#e85a5a','#c93f3f','#a63232']);ctx.font='16px sans-serif';ctx.textAlign='center';ctx.fillText('🛒',cx,cy-23);
+  if(!pw[i]||!rd[i]){ctx.font='14px sans-serif';ctx.globalAlpha=.6+.4*Math.sin(now/260);ctx.fillText(!pw[i]?'⚡':'🚧',cx,cy-38);ctx.globalAlpha=1}}
+ else if(k>=8){box(cx,cy,.8,k==10?16:22,k==8?['#9fb8ff','#5f7fe0','#4a66c0']:k==9?['#ff9f8f','#e0553f','#bf4330']:['#ffd89a','#e0a64a','#be8a38']);ctx.font='15px sans-serif';ctx.textAlign='center';ctx.fillText(k==8?'👮':k==9?'🚒':'🏫',cx,cy-(k==10?18:24))}
+ else if(k==5){
+  box(cx,cy,.86,16,PAL.g);
+  box(cx-11,cy-12,.17,30,['#f0f0f0','#c9c9c9','#a8a8a8']);box(cx+9,cy-14,.17,30,['#f0f0f0','#c9c9c9','#a8a8a8']);
+  smoke(cx-11,cy-44,now,i);smoke(cx+9,cy-46,now,i+3);
+  ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText('⚡',cx,cy-3)}
+ else{
+  const lv=l[i];
+  if(!lv){dia(cx,cy,HW*.9,HH*.9);ctx.fillStyle=ZT[k];ctx.fill()}
+  else if(k==2){if(lv==1)box(cx,cy,.58,10,['#d9674b','#f3e2c4','#d8c29c']);else{const h=lv==2?26:42,f=lv==2?.66:.72;box(cx,cy,f,h,PAL.r);wins(cx,cy,f,h)}}
+  else if(k==3){const h=[0,16,34,56][lv];box(cx,cy,.7,h,PAL.c);wins(cx,cy,.7,h)}
+  else{const h=[0,12,18,26][lv];box(cx,cy-3,.12,h+18,PAL.g);box(cx,cy,.82,h,PAL.i);smoke(cx,cy-h-26,now,i)}
+  if(!pw[i]||!rd[i]){ctx.font='14px sans-serif';ctx.textAlign='center';ctx.globalAlpha=.6+.4*Math.sin(now/260);ctx.fillText(!pw[i]?'⚡':'🚧',cx,cy-(l[i]?[0,12,26,42][l[i]]:0)-6);ctx.globalAlpha=1}
+ }
+}
+function marks(now){ctx.textAlign='center';for(let i=0;i<N*N;i++){if(!fr[i]&&!rb[i])continue;const x=i%N,y=(i/N)|0,cx=OX+(x-y)*HW,cy=OY+(x+y)*HH+HH-(l[i]||1)*12;
+ if(fr[i]){ctx.font=(22+Math.sin(now/90+i)*3)+'px sans-serif';ctx.fillText('🔥',cx,cy-4)}
+ if(rb[i]){ctx.font='20px sans-serif';ctx.fillText('🦹',cx,cy-8)}}}
+function draw(now){
+ ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);
+ ctx.setTransform(dpr*V.s,0,0,dpr*V.s,dpr*V.x,dpr*V.y);
+ for(let y=0;y<N;y++)for(let x=0;x<N;x++)tile(x,y,now);marks(now);
+ const T=TOOLS[cur];
+ if(hv&&T.id!='pan'){
+  const bad=money<T.c;
+  if(RAD[T.id]){const R=RAD[T.id];for(let y=0;y<N;y++)for(let x=0;x<N;x++){const dx=x-hv.x,dy=y-hv.y;if(dx*dx+dy*dy<=R*R){dia(OX+(x-y)*HW,OY+(x+y)*HH+HH,HW,HH);ctx.fillStyle='rgba(255,214,0,.2)';ctx.fill()}}}
+  dia(OX+(hv.x-hv.y)*HW,OY+(hv.x+hv.y)*HH+HH,HW,HH);
+  ctx.fillStyle=bad||T.id=='bd'?'rgba(230,60,60,.35)':'rgba(255,255,255,.4)';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();ctx.lineWidth=1}
+}
+let cars=[],cb=[];
+const DIR=[[1,0],[-1,0],[0,1],[0,-1]],CP=[['#ff9b8a','#e5584a','#c0392b'],['#fafafa','#d8dde2','#b4bcc4'],['#ffe082','#f2b705','#c99700']];
+const isRoad=(x,y)=>x>=0&&y>=0&&x<N&&y<N&&t[y*N+x]==1;
+function pickDir(x,y,f){const o=[];for(let d=0;d<4;d++)if(!(f>=0&&d==(f^1))&&isRoad(x+DIR[d][0],y+DIR[d][1]))o.push(d);
+ if(o.length)return o[Math.random()*o.length|0];
+ return f>=0&&isRoad(x+DIR[f^1][0],y+DIR[f^1][1])?(f^1):-1}
+function moveCars(dt){
+ const want=Math.min(36,S.roads>>2);
+ if(cars.length<want&&Math.random()<.08)for(let n=0;n<12;n++){const i=(Math.random()*N*N)|0;if(t[i]==1){const x=i%N,y=(i/N)|0,d=pickDir(x,y,-1);if(d>=0)cars.push({x,y,d,p:Math.random(),c:(Math.random()*3)|0});break}}
+ cars=cars.filter(c=>{if(!isRoad(c.x,c.y))return false;c.p+=dt;
+  while(c.p>=1){c.p-=1;c.x+=DIR[c.d][0];c.y+=DIR[c.d][1];if(!isRoad(c.x,c.y))return false;c.d=pickDir(c.x,c.y,c.d);if(c.d<0)return false}
+  return true});
+ if(cars.length>want+4)cars.length=want+4;
+ cb=[];for(const c of cars){const gx=c.x+DIR[c.d][0]*c.p,gy=c.y+DIR[c.d][1]*c.p,i=Math.round(gy)*N+Math.round(gx);(cb[i]=cb[i]||[]).push([OX+(gx-gy)*HW,OY+(gx+gy)*HH+HH,c.c])}
+}
+let last=performance.now(),acc=0;
+function loop(now){const dt=Math.min(now-last,250);last=now;acc+=dt*spd;while(acc>=1000){acc-=1000;tick()}moveCars(dt*Math.min(spd,2)/1000*1.5);draw(now);requestAnimationFrame(loop)}
+
+if(!load())newGame();
+compute();pick(5);fit();ui();requestAnimationFrame(loop);
+try{document.fonts.ready.then(fit)}catch(e){}
+</script>
+</body>
+</html>
